@@ -45,22 +45,22 @@ exports.createReservation = async (req, res) => {
         return res.status(400).json({ error: 'Reservation time must be between 7 am and 9 pm' });
       }
   
-      // Check if the facility and sport type are available for the desired time slot
-      const existingReservation = await Reservation.findOne({
+      // Check if the user has already made a reservation for the specified scenario on the same day
+      const existingReservation = await Reservation.count({
         where: {
+          user_id: user.id,
           scenario_name,
-          sport_type,
           reserved_at: {
-            $gte: format(reservationDate, 'yyyy-MM-dd HH:mm:ss'),
-            $lt: format(new Date(reservationDate.getTime() + 60 * 60 * 1000), 'yyyy-MM-dd HH:mm:ss'), // Add 1 hour to reserved_at
+            $gte: reservationDate,
+            $lt: reservationDate.setHours(23, 59, 59, 999), // End of the day
           },
         },
       });
   
-      if (existingReservation) {
-        return res.status(409).json({ error: 'Facility and sport type are already reserved for the desired time slot' });
-      }
-  
+      if (existingReservation > 0) {
+        return res.status(409).json({ error: 'User has already reserved this scenario on the same day' });
+      }  
+      
       // Create the reservation
       const reservation = await Reservation.create({
         user_id: user.id,
@@ -72,8 +72,12 @@ exports.createReservation = async (req, res) => {
   
       return res.status(201).json({ message: 'Reservation created successfully', reservation });
     } catch (error) {
-      console.error('Error creating reservation', error);
-      return res.status(500).json({ error: 'Internal server error' });
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            // Handle the unique constraint violation error here
+            return res.status(409).json({ error: 'Reservation already exists for the specified reserved_at time' });
+        }
+        console.error('Error creating reservation', error);
+        return res.status(500).json({ error: 'Internal server error' });
     }
   };
 
