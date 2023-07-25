@@ -1,4 +1,5 @@
-const { format, isToday, isTomorrow, isWithinInterval } = require('date-fns');
+const { format, isToday, isTomorrow, isWithinInterval, parseISO } = require('date-fns');
+const { utcToZonedTime, zonedTimeToUtc } = require('date-fns-tz');
 const { Reservation } = require('../models/reservationModel');
 
 exports.getUserReservations = async (req, res) => {
@@ -9,9 +10,26 @@ exports.getUserReservations = async (req, res) => {
     }
 
     // Fetch reservations for the user based on user ID
-    const userReservations = await Reservation.findAll({ where: { user_id: user.id } });
+    const reservations = await Reservation.findAll({ where: { user_id: user.id } });
 
-    return res.status(200).json({ reservations: userReservations });
+    const userReservations = reservations.map((reservation) => {
+        // Convertir fechas UTC a la zona horaria específica para mostrar al cliente
+        const start_time_local = utcToZonedTime(reservation.start_time, 'America/Bogota');
+        const end_time_local = utcToZonedTime(reservation.end_time, 'America/Bogota');
+        const reserved_at_local = utcToZonedTime(reservation.reserved_at, 'America/Bogota');
+  
+        return {
+          id: reservation.id,
+          scenario_name: reservation.scenario_name,
+          sport_type: reservation.sport_type,
+          start_time: format(start_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
+          end_time: format(end_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
+          reserved_at: format(reserved_at_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
+        };
+      });
+  
+      // Enviar las reservas del usuario al cliente
+      return res.status(200).json({ userReservations });
   } catch (error) {
     console.error('Error fetching user reservations', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -26,9 +44,16 @@ exports.createReservation = async (req, res) => {
       }
   
       const { scenario_name, sport_type, reserved_at } = req.body;
+
+      // Convertir fechas a UTC antes de guardar en la base de datos
+      const reserved_at_utc = zonedTimeToUtc(parseISO(reserved_at), 'America/Bogota');
+      console.log("reserved_at_utc: " + reserved_at_utc);
   
       // Convert the input date to Date object
-      const reservationDate = new Date(reserved_at);
+      const reservationDate = new Date(reserved_at_utc);
+      const start_time_utc = new Date(reserved_at_utc);
+      const end_time_utc = new Date(reserved_at_utc);
+      end_time_utc.setHours(end_time_utc.getHours() + 1);
   
       // Check if reserved_at is within the allowed range (current day and the next day)
       const today = new Date();
@@ -51,11 +76,13 @@ exports.createReservation = async (req, res) => {
           user_id: user.id,
           scenario_name,
           reserved_at: {
-            $gte: reservationDate,
+            $gte: reservationDate.setHours(6, 59, 59, 999),
             $lt: reservationDate.setHours(23, 59, 59, 999), // End of the day
           },
         },
       });
+
+      console.log("existingReservation: " + existingReservation);
   
       if (existingReservation > 0) {
         return res.status(409).json({ error: 'User has already reserved this scenario on the same day' });
@@ -66,10 +93,21 @@ exports.createReservation = async (req, res) => {
         user_id: user.id,
         scenario_name,
         sport_type,
-        reserved_at: reservationDate,
+        start_time: start_time_utc,
+        end_time: end_time_utc,
+        reserved_at: reserved_at_utc,
         duration_minutes: 60,
       });
-  
+
+      // Convertir fechas UTC a la zona horaria específica para mostrar al cliente
+      const start_time_local = utcToZonedTime(reservation.start_time, 'America/Bogota');
+      const end_time_local = utcToZonedTime(reservation.end_time, 'America/Bogota');
+      const reserved_at_local = utcToZonedTime(reservation.reserved_at, 'America/Bogota');
+
+      reservation.start_time = format(start_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' });
+      reservation.end_time = format(end_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' });
+      reservation.reserved_at = format(reserved_at_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' });
+       
       return res.status(201).json({ message: 'Reservation created successfully', reservation });
     } catch (error) {
         if (error.name === 'SequelizeUniqueConstraintError') {
@@ -82,29 +120,31 @@ exports.createReservation = async (req, res) => {
   };
 
 exports.deleteReservation = async (req, res) => {
-try {
-    const { user } = req.session;
-    if (!user) {
-    return res.status(401).json({ error: 'User not logged in' });
+    try {
+        const { user } = req.session;
+        if (!user) {
+        return res.status(401).json({ error: 'User not logged in' });
+        }
+
+        const { reserved_at } = req.params;
+
+        const reserved_at_utc = zonedTimeToUtc(parseISO(reserved_at), 'America/Bogota');
+
+        // Find and delete the reservation based on reserved_at and user_id
+        const deletedReservation = await Reservation.destroy({
+        where: {
+            user_id: user.id,
+            reserved_at: new Date(reserved_at_utc),
+        },
+        });
+
+        if (deletedReservation === 0) {
+        return res.status(404).json({ error: 'Reservation not found' });
+        }
+
+        return res.status(200).json({ message: 'Reservation deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting reservation', error);
+        return res.status(500).json({ error: 'Internal server error' });
     }
-
-    const { reserved_at } = req.params;
-
-    // Find and delete the reservation based on reserved_at and user_id
-    const deletedReservation = await Reservation.destroy({
-    where: {
-        user_id: user.id,
-        reserved_at: new Date(reserved_at),
-    },
-    });
-
-    if (deletedReservation === 0) {
-    return res.status(404).json({ error: 'Reservation not found' });
-    }
-
-    return res.status(200).json({ message: 'Reservation deleted successfully' });
-} catch (error) {
-    console.error('Error deleting reservation', error);
-    return res.status(500).json({ error: 'Internal server error' });
-}
 };
