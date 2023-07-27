@@ -1,6 +1,7 @@
 const { format, isToday, isTomorrow, isWithinInterval, parseISO } = require('date-fns');
 const { utcToZonedTime, zonedTimeToUtc } = require('date-fns-tz');
 const { Reservation } = require('../models/reservationModel');
+const { Op } = require('sequelize');
 
 exports.getUserReservations = async (req, res) => {
   try {
@@ -9,8 +10,67 @@ exports.getUserReservations = async (req, res) => {
       return res.status(401).json({ error: 'User not logged in' });
     }
 
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(23, 59, 59, 999);
+    today.setHours(6, 59, 59, 999);
+
     // Fetch reservations for the user based on user ID
-    const reservations = await Reservation.findAll({ where: { user_id: user.id } });
+    const reservations = await Reservation.findAll({ 
+      where: { 
+        user_id: user.id,
+        reserved_at: {
+          [Op.between]: [today, tomorrow],
+        },
+      } 
+    });
+
+    const userReservations = reservations.map((reservation) => {
+        // Convertir fechas UTC a la zona horaria específica para mostrar al cliente
+        const start_time_local = utcToZonedTime(reservation.start_time, 'America/Bogota');
+        const end_time_local = utcToZonedTime(reservation.end_time, 'America/Bogota');
+        const reserved_at_local = utcToZonedTime(reservation.reserved_at, 'America/Bogota');
+  
+        return {
+          id: reservation.id,
+          scenario_name: reservation.scenario_name,
+          sport_type: reservation.sport_type,
+          start_time: format(start_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
+          end_time: format(end_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
+          reserved_at: format(reserved_at_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
+        };
+      });
+  
+      // Enviar las reservas del usuario al cliente
+      return res.status(200).json({ userReservations });
+  } catch (error) {
+    console.error('Error fetching user reservations', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+exports.getReservations = async (req, res) => {
+  try {
+    const { user } = req.session;
+    if (!user) {
+      return res.status(401).json({ error: 'User not logged in' });
+    }
+
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(23, 59, 59, 999);
+    today.setHours(6, 59, 59, 999);
+
+    // Fetch reservations for the user based on user ID
+    const reservations = await Reservation.findAll({ 
+      where: {
+        reserved_at: {
+          [Op.between]: [today, tomorrow],
+        },
+      },
+    });
 
     const userReservations = reservations.map((reservation) => {
         // Convertir fechas UTC a la zona horaria específica para mostrar al cliente
@@ -39,6 +99,7 @@ exports.getUserReservations = async (req, res) => {
 exports.createReservation = async (req, res) => {
     try {
       const { user } = req.session;
+      console.log(user);
       if (!user) {
         return res.status(401).json({ error: 'User not logged in' });
       }
@@ -58,15 +119,16 @@ exports.createReservation = async (req, res) => {
       const today = new Date();
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(23, 59, 59, 999);
   
       if (!isWithinInterval(reservationDate, { start: today, end: tomorrow })) {
         return res.status(400).json({ error: 'Reservation date must be within the current day and the next day' });
       }
   
-      // Check if reserved_at is between 7 am and 9 pm
+      // Check if reserved_at is between 7 am and 8 pm
       const reservedHour = reservationDate.getHours();
-      if (reservedHour < 7 || reservedHour >= 21) {
-        return res.status(400).json({ error: 'Reservation time must be between 7 am and 9 pm' });
+      if (reservedHour < 7 || reservedHour > 20) {
+        return res.status(400).json({ error: 'Reservation time must be between 7 am and maximum 8 pm' });
       }
   
       // Check if the user has already made a reservation for the specified scenario on the same day
@@ -75,8 +137,7 @@ exports.createReservation = async (req, res) => {
           user_id: user.id,
           scenario_name,
           reserved_at: {
-            $gte: reservationDate.setHours(6, 59, 59, 999),
-            $lt: reservationDate.setHours(23, 59, 59, 999), // End of the day
+            [Op.between]: [reservationDate.setHours(6, 59, 59, 999), reservationDate.setHours(23, 59, 59, 999)],
           },
         },
       });
@@ -101,12 +162,7 @@ exports.createReservation = async (req, res) => {
       const start_time_local = utcToZonedTime(reservationCreated.start_time, 'America/Bogota');
       const end_time_local = utcToZonedTime(reservationCreated.end_time, 'America/Bogota');
       const reserved_at_local = utcToZonedTime(reservationCreated.reserved_at, 'America/Bogota');
-
-      // Convertir fechas UTC a la zona horaria específica para mostrar al cliente
-/*       console.log("reservation.start_time", reservation.start_time);
-      console.log("reservation.end_time", reservation.end_time);
-      console.log("reservation.reserved_at", reservation.reserved_at); */
-       
+ 
       return res.status(201).json({ message: 'Reservation created successfully', 
         reservation: {
           id: reservationCreated.id,
@@ -140,10 +196,10 @@ exports.deleteReservation = async (req, res) => {
 
         // Find and delete the reservation based on reserved_at and user_id
         const deletedReservation = await Reservation.destroy({
-        where: {
-            user_id: user.id,
-            reserved_at: new Date(reserved_at_utc),
-        },
+          where: {
+              user_id: user.id,
+              reserved_at: new Date(reserved_at_utc),
+          },
         });
 
         if (deletedReservation === 0) {

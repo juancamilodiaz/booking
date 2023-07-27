@@ -44,12 +44,10 @@ const Reservation = sequelize.define('Reservation', {
   reserved_at: {
     type: DataTypes.DATE,
     allowNull: false,
-    unique: true,
   },
   duration_minutes: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    unique: true,
   },
 });
 

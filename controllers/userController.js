@@ -6,7 +6,11 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     // Find the user by email
-    const user = await UserModel.findOne({ email });
+    const user = await UserModel.findOne({
+      where: {
+        email
+      },
+    });
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -54,7 +58,11 @@ exports.register = async (req, res) => {
 
     // Check if the user already exists
     console.log(email);
-    const existingUser = await UserModel.findOne({ email });
+    const existingUser = await UserModel.findOne({
+      where: {
+        email
+      },
+    });
     if (existingUser) {
       return res.status(409).json({ error: 'User already exists' });
     }

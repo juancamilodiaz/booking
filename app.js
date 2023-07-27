@@ -38,7 +38,8 @@ app.get('/sessionStatus', userController.sessionStatus);
 
 // Reservations endpoint
 const reservationController = require('./controllers/reservationController');
-app.get('/reservations', reservationController.getUserReservations);
+app.get('/reservations', reservationController.getReservations);
+app.get('/reservationsByUser', reservationController.getUserReservations);
 app.post('/reservations', reservationController.createReservation);
 app.delete('/reservations/:reserved_at', reservationController.deleteReservation);
 
