@@ -47,7 +47,6 @@ exports.createReservation = async (req, res) => {
 
       // Convertir fechas a UTC antes de guardar en la base de datos
       const reserved_at_utc = zonedTimeToUtc(parseISO(reserved_at), 'America/Bogota');
-      console.log("reserved_at_utc: " + reserved_at_utc);
   
       // Convert the input date to Date object
       const reservationDate = new Date(reserved_at_utc);
@@ -89,7 +88,7 @@ exports.createReservation = async (req, res) => {
       }  
       
       // Create the reservation
-      const reservation = await Reservation.create({
+      const reservationCreated = await Reservation.create({
         user_id: user.id,
         scenario_name,
         sport_type,
@@ -99,16 +98,25 @@ exports.createReservation = async (req, res) => {
         duration_minutes: 60,
       });
 
-      // Convertir fechas UTC a la zona horaria específica para mostrar al cliente
-      const start_time_local = utcToZonedTime(reservation.start_time, 'America/Bogota');
-      const end_time_local = utcToZonedTime(reservation.end_time, 'America/Bogota');
-      const reserved_at_local = utcToZonedTime(reservation.reserved_at, 'America/Bogota');
+      const start_time_local = utcToZonedTime(reservationCreated.start_time, 'America/Bogota');
+      const end_time_local = utcToZonedTime(reservationCreated.end_time, 'America/Bogota');
+      const reserved_at_local = utcToZonedTime(reservationCreated.reserved_at, 'America/Bogota');
 
-      reservation.start_time = format(start_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' });
-      reservation.end_time = format(end_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' });
-      reservation.reserved_at = format(reserved_at_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' });
+      // Convertir fechas UTC a la zona horaria específica para mostrar al cliente
+/*       console.log("reservation.start_time", reservation.start_time);
+      console.log("reservation.end_time", reservation.end_time);
+      console.log("reservation.reserved_at", reservation.reserved_at); */
        
-      return res.status(201).json({ message: 'Reservation created successfully', reservation });
+      return res.status(201).json({ message: 'Reservation created successfully', 
+        reservation: {
+          id: reservationCreated.id,
+          scenario_name: reservationCreated.scenario_name,
+          sport_type: reservationCreated.sport_type,
+          start_time: format(start_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
+          end_time: format(end_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
+          reserved_at: format(reserved_at_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
+        } 
+      });
     } catch (error) {
         if (error.name === 'SequelizeUniqueConstraintError') {
             // Handle the unique constraint violation error here
