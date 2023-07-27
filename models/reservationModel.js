@@ -5,6 +5,10 @@ const User = require('../models/userModel');
 const sequelize = new Sequelize('reservation_system', 'postgres', 'admin', {
   host: 'localhost',
   dialect: 'postgres',
+  dialectOptions: {
+    // Set the preferred timezone
+    timezone: 'America/Bogota',
+  },
 });
 
 const Reservation = sequelize.define('Reservation', {
@@ -29,9 +33,23 @@ const Reservation = sequelize.define('Reservation', {
     type: DataTypes.STRING(100),
     allowNull: false,
   },
+  start_time: {
+    type: DataTypes.DATE,
+    allowNull: false,
+  },
+  end_time: {
+    type: DataTypes.DATE,
+    allowNull: false,
+  },
   reserved_at: {
     type: DataTypes.DATE,
     allowNull: false,
+    unique: true,
+  },
+  duration_minutes: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    unique: true,
   },
 });
 

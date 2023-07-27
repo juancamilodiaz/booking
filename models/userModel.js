@@ -4,6 +4,10 @@ const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = new Sequelize('reservation_system', 'postgres', 'admin', {
   host: 'localhost',
   dialect: 'postgres',
+  dialectOptions: {
+    // Set the preferred timezone
+    timezone: 'America/Bogota',
+  },
 });
 
 const User = sequelize.define('User', {
