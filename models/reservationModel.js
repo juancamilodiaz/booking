@@ -1,5 +1,6 @@
 const { Sequelize, DataTypes } = require('sequelize');
-const User = require('../models/userModel');
+const { Sport } = require('../models/sportModel');
+const { User } = require('../models/userModel');
 
 // Replace with your PostgreSQL database connection details
 const sequelize = new Sequelize('reservation_system', 'postgres', 'admin', {
@@ -25,12 +26,8 @@ const Reservation = sequelize.define('Reservation', {
       key: 'id',
     },
   },
-  scenario_name: {
-    type: DataTypes.STRING(100),
-    allowNull: false,
-  },
-  sport_type: {
-    type: DataTypes.STRING(100),
+  sportId: {
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
   start_time: {
@@ -57,6 +54,10 @@ User.hasMany(Reservation, {
 });
 Reservation.belongsTo(User, {
   foreignKey: 'user_id',
+});
+Reservation.belongsTo(Sport, {
+  as: 'sport',
+  foreignKey: 'sportId'
 });
 
 (async () => {
