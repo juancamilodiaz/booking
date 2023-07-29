@@ -1,12 +1,12 @@
 const bcrypt = require('bcrypt');
-const UserModel = require('../models/userModel');
+const { User } = require('../models/userModel');
 
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     // Find the user by email
-    const user = await UserModel.findOne({
+    const user = await User.findOne({
       where: {
         email
       },
@@ -58,7 +58,7 @@ exports.register = async (req, res) => {
 
     // Check if the user already exists
     console.log(email);
-    const existingUser = await UserModel.findOne({
+    const existingUser = await User.findOne({
       where: {
         email
       },
@@ -72,7 +72,7 @@ exports.register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Create the user
-    const newUser = await UserModel.create({
+    const newUser = await User.create({
       email,
       password: hashedPassword,
       name,

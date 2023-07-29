@@ -3,8 +3,10 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 const app = express();
-
-// Other imports here...
+// Import the routers
+const reservationRouter = require('./routes/reservationRouter');
+const userRouter = require('./routes/userRouter');
+const sportRouter = require('./routes/sportRouter');
 
 // Replace with your PostgreSQL database connection details
 const sessionStore = new pgSession({
@@ -29,19 +31,10 @@ app.use(
   })
 );
 
-// Register the routes
-const userController = require('./controllers/userController');
-app.post('/register', userController.register);
-app.post('/login', userController.login);
-app.post('/logout', userController.logout);
-app.get('/sessionStatus', userController.sessionStatus);
-
-// Reservations endpoint
-const reservationController = require('./controllers/reservationController');
-app.get('/reservations', reservationController.getReservations);
-app.get('/reservationsByUser', reservationController.getUserReservations);
-app.post('/reservations', reservationController.createReservation);
-app.delete('/reservations/:reserved_at', reservationController.deleteReservation);
+// Mount the routers on the app
+app.use(reservationRouter);
+app.use(userRouter);
+app.use(sportRouter);
 
 // Start the server
 const PORT = process.env.PORT || 3000;

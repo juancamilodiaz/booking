@@ -1,6 +1,8 @@
 const { format, isToday, isTomorrow, isWithinInterval, parseISO } = require('date-fns');
 const { utcToZonedTime, zonedTimeToUtc } = require('date-fns-tz');
 const { Reservation } = require('../models/reservationModel');
+const { Sport } = require('../models/sportModel');
+
 const { Op } = require('sequelize');
 
 exports.getUserReservations = async (req, res) => {
@@ -10,16 +12,27 @@ exports.getUserReservations = async (req, res) => {
       return res.status(401).json({ error: 'User not logged in' });
     }
 
+    const { sport_name } = req.params;
+
     const today = new Date();
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(23, 59, 59, 999);
     today.setHours(6, 59, 59, 999);
 
+    const sport = await Sport.findOne(
+      {
+        where: {
+          sport_name
+        },
+      }
+    );
+
     // Fetch reservations for the user based on user ID
     const reservations = await Reservation.findAll({ 
       where: { 
         user_id: user.id,
+        sportId: sport.id,
         reserved_at: {
           [Op.between]: [today, tomorrow],
         },
@@ -34,8 +47,7 @@ exports.getUserReservations = async (req, res) => {
   
         return {
           id: reservation.id,
-          scenario_name: reservation.scenario_name,
-          sport_type: reservation.sport_type,
+          sportId: reservation.sportId,
           start_time: format(start_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
           end_time: format(end_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
           reserved_at: format(reserved_at_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
@@ -57,22 +69,33 @@ exports.getReservations = async (req, res) => {
       return res.status(401).json({ error: 'User not logged in' });
     }
 
+    const { sport_name } = req.params;
+
     const today = new Date();
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(23, 59, 59, 999);
     today.setHours(6, 59, 59, 999);
 
+    const sport = await Sport.findOne(
+      {
+        where: {
+          sport_name
+        },
+      }
+    );
+
     // Fetch reservations for the user based on user ID
     const reservations = await Reservation.findAll({ 
       where: {
+        sportId: sport.id,
         reserved_at: {
           [Op.between]: [today, tomorrow],
         },
       },
     });
 
-    const userReservations = reservations.map((reservation) => {
+    const mappedReservations = reservations.map((reservation) => {
         // Convertir fechas UTC a la zona horaria específica para mostrar al cliente
         const start_time_local = utcToZonedTime(reservation.start_time, 'America/Bogota');
         const end_time_local = utcToZonedTime(reservation.end_time, 'America/Bogota');
@@ -80,8 +103,7 @@ exports.getReservations = async (req, res) => {
   
         return {
           id: reservation.id,
-          scenario_name: reservation.scenario_name,
-          sport_type: reservation.sport_type,
+          sportId: reservation.sportId,
           start_time: format(start_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
           end_time: format(end_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
           reserved_at: format(reserved_at_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
@@ -89,9 +111,9 @@ exports.getReservations = async (req, res) => {
       });
   
       // Enviar las reservas del usuario al cliente
-      return res.status(200).json({ userReservations });
+      return res.status(200).json({ reservations: mappedReservations });
   } catch (error) {
-    console.error('Error fetching user reservations', error);
+    console.error('Error fetching reservations', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -104,7 +126,7 @@ exports.createReservation = async (req, res) => {
         return res.status(401).json({ error: 'User not logged in' });
       }
   
-      const { scenario_name, sport_type, reserved_at } = req.body;
+      const { sport_name, reserved_at } = req.body;
 
       // Convertir fechas a UTC antes de guardar en la base de datos
       const reserved_at_utc = zonedTimeToUtc(parseISO(reserved_at), 'America/Bogota');
@@ -130,12 +152,20 @@ exports.createReservation = async (req, res) => {
       if (reservedHour < 7 || reservedHour > 20) {
         return res.status(400).json({ error: 'Reservation time must be between 7 am and maximum 8 pm' });
       }
+
+      const sport = await Sport.findOne(
+        {
+          where: {
+            sport_name
+          },
+        }
+      );
   
       // Check if the user has already made a reservation for the specified scenario on the same day
       const existingReservation = await Reservation.count({
         where: {
           user_id: user.id,
-          scenario_name,
+          sportId: sport.id,
           reserved_at: {
             [Op.between]: [reservationDate.setHours(6, 59, 59, 999), reservationDate.setHours(23, 59, 59, 999)],
           },
@@ -151,8 +181,7 @@ exports.createReservation = async (req, res) => {
       // Create the reservation
       const reservationCreated = await Reservation.create({
         user_id: user.id,
-        scenario_name,
-        sport_type,
+        sportId: sport.id,
         start_time: start_time_utc,
         end_time: end_time_utc,
         reserved_at: reserved_at_utc,
@@ -166,8 +195,7 @@ exports.createReservation = async (req, res) => {
       return res.status(201).json({ message: 'Reservation created successfully', 
         reservation: {
           id: reservationCreated.id,
-          scenario_name: reservationCreated.scenario_name,
-          sport_type: reservationCreated.sport_type,
+          sportId: reservationCreated.sportId,
           start_time: format(start_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
           end_time: format(end_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
           reserved_at: format(reserved_at_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
