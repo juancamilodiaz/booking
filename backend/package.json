@@ -1,0 +1,29 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "simple backend booking service",
+  "main": "index.js",
+  "scripts": {
+    "start": "node app.js --LOG_LEVEL=debug",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "booking",
+    "facility",
+    "sports",
+    "condo"
+  ],
+  "dependencies": {
+    "bcrypt": "^5.1.0",
+    "body-parser": "^1.20.2",
+    "connect-pg-simple": "^9.0.0",
+    "date-fns": "^2.30.0",
+    "date-fns-tz": "^2.0.0",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "mongoose": "^7.4.0",
+    "pg": "^8.11.1",
+    "sequelize": "^6.32.1",
+    "winston": "^3.10.0"
+  }
+}
