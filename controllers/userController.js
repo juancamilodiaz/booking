@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const { User } = require('../models/userModel');
+const logger = require('../logger');
 
 exports.login = async (req, res) => {
   try {
@@ -31,7 +32,7 @@ exports.login = async (req, res) => {
 
     return res.status(200).json({ message: 'Login successful', user: user });
   } catch (error) {
-    console.error('Error during login', error);
+    logger.error('Error during login', { error });
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -41,13 +42,13 @@ exports.logout = async (req, res) => {
     // Destroy the session to log out the user
     req.session.destroy((err) => {
       if (err) {
-        console.error('Error logging out:', err);
+        logger.error('Error logging out: ', { err });
         return res.status(500).json({ error: 'Internal server error' });
       }
       return res.status(200).json({ message: 'Logged out successfully' });
     });
   } catch (error) {
-    console.error('Error during logout', error);
+    logger.error('Error during logout', { error });
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -57,7 +58,7 @@ exports.register = async (req, res) => {
     const { email, password, name, phone, house_number, condo_name } = req.body;
 
     // Check if the user already exists
-    console.log(email);
+    logger.info({ email });
     const existingUser = await User.findOne({
       where: {
         email
@@ -84,13 +85,13 @@ exports.register = async (req, res) => {
 
     return res.status(201).json({ message: 'User registered successfully', user: newUser });
   } catch (error) {
-    console.error('Error during registration', error);
+    logger.error('Error during registration', { error });
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
 
 exports.sessionStatus = (req, res) => {
-  console.log(req.session.user);
+  logger.info(req.session.user );
   if (req.session.user) {
     // User is logged in, send session status as true
     res.status(200).json({ sessionValid: true });

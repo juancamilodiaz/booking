@@ -7,6 +7,18 @@ const app = express();
 const reservationRouter = require('./routes/reservationRouter');
 const userRouter = require('./routes/userRouter');
 const sportRouter = require('./routes/sportRouter');
+// Import logger
+const logger = require('./logger');
+
+// Check if the LOG_LEVEL argument is provided
+const logLevelArgIndex = process.argv.indexOf('--LOG_LEVEL');
+if (logLevelArgIndex !== -1 && process.argv.length > logLevelArgIndex + 1) {
+  // Get the log level from the next argument
+  const logLevel = process.argv[logLevelArgIndex + 1];
+
+  // Set the LOG_LEVEL environment variable
+  process.env.LOG_LEVEL = logLevel;
+}
 
 // Replace with your PostgreSQL database connection details
 const sessionStore = new pgSession({
