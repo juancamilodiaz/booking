@@ -1,7 +1,8 @@
-const { format, isToday, isTomorrow, isWithinInterval, parseISO } = require('date-fns');
+const { format, isWithinInterval, parseISO } = require('date-fns');
 const { utcToZonedTime, zonedTimeToUtc } = require('date-fns-tz');
 const { Reservation } = require('../models/reservationModel');
 const { Sport } = require('../models/sportModel');
+const logger = require('../logger');
 
 const { Op } = require('sequelize');
 
@@ -57,7 +58,7 @@ exports.getUserReservations = async (req, res) => {
       // Enviar las reservas del usuario al cliente
       return res.status(200).json({ userReservations });
   } catch (error) {
-    console.error('Error fetching user reservations', error);
+    logger.error('Error fetching user reservations', { error });
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -113,7 +114,7 @@ exports.getReservations = async (req, res) => {
       // Enviar las reservas del usuario al cliente
       return res.status(200).json({ reservations: mappedReservations });
   } catch (error) {
-    console.error('Error fetching reservations', error);
+    logger.error('Error fetching reservations', { error });
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -121,7 +122,7 @@ exports.getReservations = async (req, res) => {
 exports.createReservation = async (req, res) => {
     try {
       const { user } = req.session;
-      console.log(user);
+      logger.debug(user);
       if (!user) {
         return res.status(401).json({ error: 'User not logged in' });
       }
@@ -172,7 +173,7 @@ exports.createReservation = async (req, res) => {
         },
       });
 
-      console.log("existingReservation: " + existingReservation);
+      logger.debug('These are the existing reservations: ', { existingReservation });
   
       if (existingReservation > 0) {
         return res.status(409).json({ error: 'User has already reserved this scenario on the same day' });
@@ -206,7 +207,7 @@ exports.createReservation = async (req, res) => {
             // Handle the unique constraint violation error here
             return res.status(409).json({ error: 'Reservation already exists for the specified reserved_at time' });
         }
-        console.error('Error creating reservation', error);
+        logger.error('Error creating reservation', { error });
         return res.status(500).json({ error: 'Internal server error' });
     }
   };
@@ -236,7 +237,7 @@ exports.deleteReservation = async (req, res) => {
 
         return res.status(200).json({ message: 'Reservation deleted successfully' });
     } catch (error) {
-        console.error('Error deleting reservation', error);
+        logger.error('Error deleting reservation', { error });
         return res.status(500).json({ error: 'Internal server error' });
     }
 };

@@ -1,4 +1,5 @@
 const { Sport } = require('../models/sportModel');
+const logger = require('../logger');
 
 exports.getSports = async (req, res) => {
     try {
@@ -7,7 +8,7 @@ exports.getSports = async (req, res) => {
   
       return res.status(200).json({ sports });
     } catch (error) {
-      console.error('Error fetching sports', error);
+      logger.error('Error fetching sports', { error });
       return res.status(500).json({ error: 'Internal server error' });
     }
   };
@@ -18,6 +19,7 @@ exports.createSport = async (req, res) => {
 
     // Check if the sport already exists
     const existingSport = await Sport.findOne({ where: { sport_name } });
+    logger.debug('This is the existing sport: ', { existingSport });
     if (existingSport) {
       return res.status(409).json({ error: 'Sport already exists' });
     }
@@ -27,7 +29,7 @@ exports.createSport = async (req, res) => {
 
     return res.status(201).json({ message: 'Sport created successfully', sport });
   } catch (error) {
-    console.error('Error creating sport', error);
+    logger.error('Error creating sport', { error });
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -48,7 +50,7 @@ exports.updateSport = async (req, res) => {
   
       return res.status(200).json({ message: 'Sport updated successfully', sport: existingSport });
     } catch (error) {
-      console.error('Error updating sport', error);
+      logger.error('Error updating sport', { error });
       return res.status(500).json({ error: 'Internal server error' });
     }
   };
@@ -68,7 +70,7 @@ exports.updateSport = async (req, res) => {
   
       return res.status(200).json({ message: 'Sport deleted successfully' });
     } catch (error) {
-      console.error('Error deleting sport', error);
+      logger.error('Error deleting sport', { error });
       return res.status(500).json({ error: 'Internal server error' });
     }
   };
