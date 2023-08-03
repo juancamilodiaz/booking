@@ -1,16 +1,7 @@
-const { Sequelize, DataTypes } = require('sequelize');
+const { sequelize } = require('../db.js');
+const { DataTypes } = require('sequelize');
 const { Sport } = require('../models/sportModel');
 const { User } = require('../models/userModel');
-
-// Replace with your PostgreSQL database connection details
-const sequelize = new Sequelize('reservation_system', 'postgres', 'admin', {
-  host: 'localhost',
-  dialect: 'postgres',
-  dialectOptions: {
-    // Set the preferred timezone
-    timezone: 'America/Bogota',
-  },
-});
 
 const Reservation = sequelize.define('Reservation', {
   id: {
