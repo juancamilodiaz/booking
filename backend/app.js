@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 const pgSession = require('connect-pg-simple')(session);
 const app = express();
+const cors = require('cors'); // Import the cors package
 // Import the routers
 const reservationRouter = require('./routes/reservationRouter');
 const userRouter = require('./routes/userRouter');
@@ -48,6 +49,13 @@ app.use(reservationRouter);
 app.use(userRouter);
 app.use(sportRouter);
 
+// Enable CORS for all routes
+/* const corsOptions = {
+  origin: 'http://localhost:5000', // Allow requests from this origin
+};
+
+app.use(cors(corsOptions)); */
+app.use(cors());
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
