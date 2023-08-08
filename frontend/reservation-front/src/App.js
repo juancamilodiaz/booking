@@ -1,25 +1,20 @@
 // src/App.js
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import React, { useState }from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Login from './Login';
+import Navigation from './Navigation';
+import Logout from './Logout';
 import Reservation from './Reservation';
 
 const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
   return (
     <Router>
-      <nav>
-        <ul>
-          <li>
-            <Link to="/">Login</Link>
-          </li>
-          <li>
-            <Link to="/reservation">Reservation</Link>
-          </li>
-          {/* Add other navigation links here */}
-        </ul>
-      </nav>
+      <Navigation isLoggedIn={isLoggedIn} />
       <Routes>
-        <Route exact path="/" element={<Login />} />
+        <Route exact path="/" element={<Login setIsLoggedIn={setIsLoggedIn}/>} />
+        <Route path="/logout" element={<Logout setIsLoggedIn={setIsLoggedIn}/>} />
         <Route path="/reservation" element={<Reservation />} />
         {/* Add other routes for different pages */}
       </Routes>

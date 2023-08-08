@@ -5,6 +5,7 @@ const { Sport } = require('../models/sportModel');
 const logger = require('../logger');
 
 const { Op } = require('sequelize');
+const { use } = require('../routes/reservationRouter');
 
 exports.getUserReservations = async (req, res) => {
   try {
@@ -40,11 +41,12 @@ exports.getUserReservations = async (req, res) => {
       } 
     });
 
-    const userReservations = reservations.map((reservation) => {
+    const userReservations = reservations.map(async (reservation) => {
         // Convertir fechas UTC a la zona horaria específica para mostrar al cliente
         const start_time_local = utcToZonedTime(reservation.start_time, 'America/Bogota');
         const end_time_local = utcToZonedTime(reservation.end_time, 'America/Bogota');
         const reserved_at_local = utcToZonedTime(reservation.reserved_at, 'America/Bogota');
+        const reservedBy = await reservation.getReservedByInfo();
   
         return {
           id: reservation.id,
@@ -52,11 +54,14 @@ exports.getUserReservations = async (req, res) => {
           start_time: format(start_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
           end_time: format(end_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
           reserved_at: format(reserved_at_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
+          reservedBy,
         };
       });
+
+      const results = await Promise.all(userReservations);
   
       // Enviar las reservas del usuario al cliente
-      return res.status(200).json({ userReservations });
+      return res.status(200).json({ results });
   } catch (error) {
     logger.error('Error fetching user reservations', { error });
     return res.status(500).json({ error: 'Internal server error' });
@@ -96,11 +101,12 @@ exports.getReservations = async (req, res) => {
       },
     });
 
-    const mappedReservations = reservations.map((reservation) => {
+    const mappedReservations = reservations.map(async (reservation) => {
         // Convertir fechas UTC a la zona horaria específica para mostrar al cliente
         const start_time_local = utcToZonedTime(reservation.start_time, 'America/Bogota');
         const end_time_local = utcToZonedTime(reservation.end_time, 'America/Bogota');
         const reserved_at_local = utcToZonedTime(reservation.reserved_at, 'America/Bogota');
+        const reservedBy = await reservation.getReservedByInfo();
   
         return {
           id: reservation.id,
@@ -108,11 +114,14 @@ exports.getReservations = async (req, res) => {
           start_time: format(start_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
           end_time: format(end_time_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
           reserved_at: format(reserved_at_local, 'yyyy-MM-dd HH:mm:ss', { timeZone: 'America/Bogota' }),
+          reservedBy,
         };
       });
+
+      const results = await Promise.all(mappedReservations);
   
       // Enviar las reservas del usuario al cliente
-      return res.status(200).json({ reservations: mappedReservations });
+      return res.status(200).json({ reservations: results });
   } catch (error) {
     logger.error('Error fetching reservations', { error });
     return res.status(500).json({ error: 'Internal server error' });

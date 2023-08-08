@@ -44,12 +44,21 @@ User.hasMany(Reservation, {
   foreignKey: 'user_id',
 });
 Reservation.belongsTo(User, {
+  as: 'user',
   foreignKey: 'user_id',
 });
 Reservation.belongsTo(Sport, {
   as: 'sport',
   foreignKey: 'sportId'
 });
+
+Reservation.prototype.getReservedByInfo = async function () {
+  const user = await this.getUser();
+  if (user) {
+    return `${user.condo_name} ${user.house_number}`;
+  }
+  return 'Unknown User';
+};
 
 (async () => {
   try {
