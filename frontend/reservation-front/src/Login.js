@@ -1,11 +1,13 @@
 // src/Login.js
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
-const Login = () => {
+const Login = ({ setIsLoggedIn }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(''); // Define the setError state
+  const navigate = useNavigate();
+  const [loggedIn] = useState(false);
 
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
@@ -35,11 +37,15 @@ const Login = () => {
       if (response.ok) {
         // Login successful, you can perform further actions
         console.log('Login successful');
+        setIsLoggedIn(true);
+        // Redirect to the Reservation route
+        navigate('/reservation');
       } else {
         const data = await response.json();
         setError(data.message || 'Login failed');
       }
     } catch (error) {
+      console.log(error);
       setError('An error occurred. Please try again.');
     }
   };
@@ -75,6 +81,7 @@ const Login = () => {
       <div>
         <Link to="/forgot-password">Forgot Password?</Link>
       </div>
+      {loggedIn}
       {error && <p>{error}</p>}
     </div>
   );
