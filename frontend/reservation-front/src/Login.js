@@ -1,6 +1,7 @@
 // src/Login.js
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import './styles.css';
 
 const Login = ({ setIsLoggedIn }) => {
   const [email, setEmail] = useState('');
@@ -75,7 +76,7 @@ const Login = ({ setIsLoggedIn }) => {
           />
         </div>
         <div>
-          <button type="submit">Login</button>
+          <button className="button" type="submit">Login</button>
         </div>
       </form>
       <div>
