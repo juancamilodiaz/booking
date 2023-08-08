@@ -6,10 +6,7 @@ const Navigation = ({ isLoggedIn }) => {
     <nav>
       <ul>
         <li>
-          <Link to="/">Home</Link>
-        </li>
-        <li>
-          {isLoggedIn ? <Link to="/logout">Logout</Link> : <Link to="/login">Login</Link>}
+          {isLoggedIn ? <Link to="/logout">Logout</Link> : <Link to="/">Login</Link>}
         </li>
       </ul>
     </nav>
